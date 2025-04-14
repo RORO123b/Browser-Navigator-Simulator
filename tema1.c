@@ -24,7 +24,6 @@ struct stack *push(struct stack *s, struct page *page) {
     newNode->elem = *page;
     newNode->next = s->top;
     s->top = newNode;
-    s->top->next = NULL;
     return s;
 }
 
@@ -203,7 +202,6 @@ void print_backward_stack(StackNode *s, FILE *fout) {
     }
     fprintf(fout, "%s\n", s->elem.url);
     print_backward_stack(s->next, fout);
-    
 }
 
 void print_forward_stack(StackNode *s, FILE *fout) {
@@ -227,7 +225,6 @@ void print_history(struct browser *sentinel, int id, FILE *fout) {
 
             print_backward_stack(backwardStack->top, fout);
 
-            fprintf(fout, "\n");
             break;
         }
         iter = iter->next;
