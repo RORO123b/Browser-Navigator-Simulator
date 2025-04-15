@@ -31,9 +31,9 @@ struct stack *pop(struct stack *s) {
     if (s->top == NULL) {
         return s;
     }
-    StackNode *temp = s->top;
+    StackNode *tmp = s->top;
     s->top = s->top->next;
-    free(temp);
+    free(tmp);
     return s;
 }
 
@@ -62,6 +62,7 @@ struct browser *initBrowser() {
     sentinel->list = (struct tabsList *)malloc(sizeof(struct tabsList));
     sentinel->list->next = sentinel->list;
     sentinel->list->prev = sentinel->list;
+    sentinel->list->tab = NULL;
     return sentinel;
 }
 
@@ -141,7 +142,7 @@ struct browser *open(struct browser *sentinel, int id, FILE *fout) {
     struct tabsList *iter = sentinel->list->next;
 
     while (iter != sentinel->list) {
-        if (iter->tab->currentPage->id == id) {
+        if (iter->tab->id == id) {
             sentinel->current = iter->tab;
             return sentinel;
         }
@@ -229,6 +230,9 @@ void print_history(struct browser *sentinel, int id, FILE *fout) {
         }
         iter = iter->next;
     }
+    if (iter == sentinel->list) {
+        fprintf(fout, "403 Forbidden\n");
+    }
 }
 
 struct tab *backward(struct tab *current, FILE *fout) {
@@ -265,7 +269,7 @@ int main() {
     struct page *pages = (struct page *)malloc((n + 1) * sizeof(struct page));
     pages[0].id = 0;
     strcpy(pages[0].url, "https://acs.pub.ro/");
-    pages[0].description = "Computer Science";
+    pages[0].description = "Computer Science\n";
     for (int i = 1; i <= n; i++) {
         fscanf(fin, "%d", &pages[i].id);
         fscanf(fin, "%s", pages[i].url);
@@ -284,7 +288,7 @@ int main() {
         command = (char *)malloc(50 * sizeof(char));
         fscanf(fin, "%s", command);
         if (strcmp(command, "NEW_TAB") == 0) {
-            struct page *page = &pages[lastId + 1];
+            struct page *page = &pages[0];
             sentinel = new_tab(sentinel, page, lastId++);
         } else if (strcmp(command, "CLOSE") == 0) {
             sentinel = close_tab(sentinel, fout);
@@ -297,21 +301,22 @@ int main() {
         } else if (strcmp(command, "PREV") == 0) {
             sentinel->current = prev(sentinel);
         } else if (strcmp(command, "PAGE") == 0) {
-            int id;
+            int id, index;
             fscanf(fin, "%d", &id);
-            if (id > n) {
+            for (index = 0; index <= n; index++) {
+                if (pages[index].id == id) {
+                    break;
+                }
+            }
+            if (index > n) {
                 fprintf(fout, "403 Forbidden\n");
                 continue;
             }
-            struct page *page = &pages[id];
+            struct page *page = &pages[index];
             sentinel = new_page(sentinel, page);
         } else if (strcmp(command, "PRINT_HISTORY") == 0) {
             int id;
             fscanf(fin, "%d", &id);
-            if (id > n) {
-                fprintf(fout, "403 Forbidden\n");
-                continue;
-            }
             print_history(sentinel, id, fout);
         } else if (strcmp(command, "BACKWARD") == 0) {
             sentinel->current = backward(sentinel->current, fout);
@@ -324,5 +329,27 @@ int main() {
     }
     fclose(fin);
     fclose(fout);
+    for (int i = 1; i <= n; i++) {
+        free(pages[i].description);
+    }
+    free(pages);
+    struct browser *iter = sentinel;
+    iter->list = iter->list->next;
+    while (iter->list != sentinel->list) {
+        struct tabsList *tmp = iter->list;
+        iter->list = iter->list->next;
+        while (tmp->tab->backwardStack->top != NULL)
+            tmp->tab->backwardStack = pop(tmp->tab->backwardStack);
+        free(tmp->tab->backwardStack);
+        while (tmp->tab->forwardStack->top != NULL)
+            tmp->tab->forwardStack = pop(tmp->tab->forwardStack);
+        free(tmp->tab->forwardStack);
+        free(tmp->tab->currentPage);
+        free(tmp->tab);
+        free(tmp);
+    }
+    free(sentinel->list);
+    free(sentinel->current);
+    free(sentinel);
     return 0;
 }
