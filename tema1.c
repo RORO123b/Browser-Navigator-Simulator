@@ -127,7 +127,6 @@ struct browser *close_tab(struct browser *sentinel, FILE *fout) {
 
     while (iter != sentinel->list) {
         if (iter->tab == sentinel->current) {
-                        // Free stack contents
             while (iter->tab->backwardStack->top != NULL) {
                 pop(iter->tab->backwardStack);
             }
@@ -138,12 +137,10 @@ struct browser *close_tab(struct browser *sentinel, FILE *fout) {
             }
             free(iter->tab->forwardStack);
             
-            // Remove from list
             iter->prev->next = iter->next;
             iter->next->prev = iter->prev;
             sentinel->current = iter->prev->tab;
             
-            // Free the tab and list node
             free(iter->tab);
             free(iter);
             break;
@@ -342,28 +339,24 @@ int main() {
         free(pages[i].description);
     }
     free(pages);
-    // Free all remaining tabs
     struct tabsList *iter = sentinel->list->next;
     while (iter != sentinel->list) {
-        struct tabsList *next = iter->next;
-        
-        // Free stacks
-        while (iter->tab->backwardStack->top != NULL) {
-            pop(iter->tab->backwardStack);
+        struct tabsList *tmp = iter;
+        iter = iter->next;
+        while (tmp->tab->backwardStack->top != NULL) {
+            pop(tmp->tab->backwardStack);
         }
-        free(iter->tab->backwardStack);
+        free(tmp->tab->backwardStack);
         
-        while (iter->tab->forwardStack->top != NULL) {
-            pop(iter->tab->forwardStack);
+        while (tmp->tab->forwardStack->top != NULL) {
+            pop(tmp->tab->forwardStack);
         }
-        free(iter->tab->forwardStack);
+        free(tmp->tab->forwardStack);
         
-        free(iter->tab);
-        free(iter);
-        iter = next;
+        free(tmp->tab);
+        free(tmp);
     }
 
-    // Free sentinel
     free(sentinel->list);
     free(sentinel);
     return 0;
