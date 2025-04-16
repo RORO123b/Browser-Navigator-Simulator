@@ -11,7 +11,7 @@ typedef struct page {
 } page;
 
 typedef struct StackNode{
-	struct page elem;
+	struct page *elem;
 	struct StackNode *next;
 } StackNode;
 
@@ -21,7 +21,7 @@ typedef struct stack {
 
 struct stack *push(struct stack *s, struct page *page) {
     StackNode *newNode = (StackNode *)malloc(sizeof(StackNode));
-    newNode->elem = *page;
+    newNode->elem = page;
     newNode->next = s->top;
     s->top = newNode;
     return s;
@@ -127,9 +127,24 @@ struct browser *close_tab(struct browser *sentinel, FILE *fout) {
 
     while (iter != sentinel->list) {
         if (iter->tab == sentinel->current) {
+                        // Free stack contents
+            while (iter->tab->backwardStack->top != NULL) {
+                pop(iter->tab->backwardStack);
+            }
+            free(iter->tab->backwardStack);
+            
+            while (iter->tab->forwardStack->top != NULL) {
+                pop(iter->tab->forwardStack);
+            }
+            free(iter->tab->forwardStack);
+            
+            // Remove from list
             iter->prev->next = iter->next;
             iter->next->prev = iter->prev;
             sentinel->current = iter->prev->tab;
+            
+            // Free the tab and list node
+            free(iter->tab);
             free(iter);
             break;
         }
@@ -198,21 +213,16 @@ struct browser *new_page(struct browser *sentinel, struct page *page) {
 }
 
 void print_backward_stack(StackNode *s, FILE *fout) {
-    if (s == NULL) {
-        return;
-    }
-    fprintf(fout, "%s\n", s->elem.url);
+    if (s == NULL) return;
+    fprintf(fout, "%s\n", s->elem->url);
     print_backward_stack(s->next, fout);
 }
 
 void print_forward_stack(StackNode *s, FILE *fout) {
-    if (s == NULL) {
-        return;
-    }
+    if (s == NULL) return;
     print_forward_stack(s->next, fout);
-    fprintf(fout, "%s\n", s->elem.url);
+    fprintf(fout, "%s\n", s->elem->url);
 }
-
 void print_history(struct browser *sentinel, int id, FILE *fout) {
     struct tabsList *iter = sentinel->list->next;
     while (iter != sentinel->list) {
@@ -240,8 +250,7 @@ struct tab *backward(struct tab *current, FILE *fout) {
         fprintf(fout, "403 Forbidden\n");
         return current;
     }
-    struct page *page = (struct page *)malloc(sizeof(struct page));
-    *page = current->backwardStack->top->elem;
+    struct page *page = current->backwardStack->top->elem;
     current->forwardStack = push(current->forwardStack, current->currentPage);
     current->currentPage = page;
     current->backwardStack = pop(current->backwardStack);
@@ -253,8 +262,7 @@ struct tab *forward(struct tab *current, FILE *fout) {
         fprintf(fout, "403 Forbidden\n");
         return current;
     }
-    struct page *page = (struct page *)malloc(sizeof(struct page));
-    *page = current->forwardStack->top->elem;
+    struct page *page = current->forwardStack->top->elem;
     current->backwardStack = push(current->backwardStack, current->currentPage);
     current->currentPage = page;
     current->forwardStack = pop(current->forwardStack);
@@ -310,6 +318,7 @@ int main() {
             }
             if (index > n) {
                 fprintf(fout, "403 Forbidden\n");
+                free(command);
                 continue;
             }
             struct page *page = &pages[index];
@@ -333,23 +342,29 @@ int main() {
         free(pages[i].description);
     }
     free(pages);
-    struct browser *iter = sentinel;
-    iter->list = iter->list->next;
-    while (iter->list != sentinel->list) {
-        struct tabsList *tmp = iter->list;
-        iter->list = iter->list->next;
-        while (tmp->tab->backwardStack->top != NULL)
-            tmp->tab->backwardStack = pop(tmp->tab->backwardStack);
-        free(tmp->tab->backwardStack);
-        while (tmp->tab->forwardStack->top != NULL)
-            tmp->tab->forwardStack = pop(tmp->tab->forwardStack);
-        free(tmp->tab->forwardStack);
-        free(tmp->tab->currentPage);
-        free(tmp->tab);
-        free(tmp);
+    // Free all remaining tabs
+    struct tabsList *iter = sentinel->list->next;
+    while (iter != sentinel->list) {
+        struct tabsList *next = iter->next;
+        
+        // Free stacks
+        while (iter->tab->backwardStack->top != NULL) {
+            pop(iter->tab->backwardStack);
+        }
+        free(iter->tab->backwardStack);
+        
+        while (iter->tab->forwardStack->top != NULL) {
+            pop(iter->tab->forwardStack);
+        }
+        free(iter->tab->forwardStack);
+        
+        free(iter->tab);
+        free(iter);
+        iter = next;
     }
+
+    // Free sentinel
     free(sentinel->list);
-    free(sentinel->current);
     free(sentinel);
     return 0;
 }
