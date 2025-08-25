@@ -1,47 +1,60 @@
-Pentru rezolvarea temei am implementat pentru fiecare functie ceruta cate o functie in C.
+# Browser Navigator Simulator  
 
-Citesc si introduc intr-un vector pages paginile din .in. Initializez browserul (sentinel) si introduc tabul cu pagina acs in el.
+This project simulates the behavior of a tabbed web browser with navigation functionality such as opening/closing tabs, navigating between them, and managing browsing history.  
 
-Functia NEW_TAB:
-    - initializez noul tab si introduc la finalul sentinelei tabul acs
+## Features  
 
-Functia CLOSE:
-    - verific daca tabul are ID 0 afisam Forbidden 403
-    - parcurgem taburile pana cand ajungem in tabul curent
-    - eliminam toate elementele din backwardStack si din forwardStack, iar mai apoi eliminam din lista tabul curent
+### 1. `NEW_TAB`  
+- Creates a new tab and appends it to the browser.  
 
-Functia OPEN ID:
-    - parcurgem browserul pana ajungem in dreptul tabului cu ID-ul cerut si il punem ca tabul curent
-    - daca nu-l gasim afisam Forbidden 403
+### 2. `CLOSE`  
+- Closes the current tab (unless it has ID `0`, in which case `403 Forbidden` is displayed).  
+- Clears the **backward** and **forward** stacks of that tab.  
+- Removes the tab from the browser.  
 
-Functia NEXT:
-    - parcurgem browserul pana ajungem in dreptul tabului curent si il setam pe urmatorul ca tab curent
-    - in cazul in care urmatorul tab este sentinela punem ca tab curent urmatorul dupa sentinel
+### 3. `OPEN <ID>`  
+- Switches focus to the tab with the specified ID.  
+- If no such tab exists, displays `403 Forbidden`.  
 
-Functia PREV:
-    - exact la fel ca next doar ca punem tabul dinainte
+### 4. `NEXT`  
+- Moves to the next tab in the list.  
+- If the next tab is the sentinel, wraps around to the tab after the sentinel.  
 
-Functia PAGE ID:
-    - cautam in vectorul de pagini, pagina cu ID-ul cerut si retinem indexul
-    - daca nu gasim afisam 403 Forbidden si eliminam memoria comenzii (dam continue ca sa nu facem urmatoarele instructiuni)
-    - daca gasim dam push la tabul curent in stiva backward a tabului curent si dam pop la toata stiva forward
-    - punem apoi ca tab curent tabul dorit
+### 5. `PREV`  
+- Moves to the previous tab in the list (similar to `NEXT`, but backwards).  
 
-Functia PRINT_HISTORY ID:
-    - parcurgem browserul pana ajungem in dreptul tabului cu ID-ul cerut
-    - afisam recursiv backwardstack, apoi afisam pagina curenta, apoi afisam recursiv forwardstack
-    - am facut functii diferite de afisare backwardstack si respectiv forwardstack pentru a-mi facilita munca
-    - daca nu gasim asemenea tab cu asemenea ID afisam 403 Forbidden
+### 6. `PAGE <ID>`  
+- Opens the page with the given ID in the current tab.  
+- If the page does not exist, displays `403 Forbidden` and skips the rest of the command.  
+- If found:  
+  - Pushes the current page onto the **backward stack**.  
+  - Clears the **forward stack**.  
+  - Sets the requested page as the current one.  
 
-Functia BACKWARD:
-    - daca in backwardstack nu se afla elemente afisam 403 Forbidden
-    - altfel, punem pagina curecta in forwardstack, inlocuim pagina curenta cu elementul de top din backwardstack si il eliminam din acesta
+### 7. `PRINT_HISTORY <ID>`  
+- Prints the browsing history of the tab with the given ID:  
+  1. Backward stack (recursively).  
+  2. Current page.  
+  3. Forward stack (recursively).  
+- If the tab does not exist, displays `403 Forbidden`.  
 
-Functia FORWARD:
-    - similar cu BACKWARD doar ca inversam stivele
+### 8. `BACKWARD`  
+- Navigates back in history.  
+- If the backward stack is empty, displays `403 Forbidden`.  
+- Otherwise:  
+  - Pushes the current page onto the forward stack.  
+  - Replaces the current page with the top of the backward stack.  
 
-Functia PRINT:
-    - parcurgem browserul pana ajungem in tabul curent apoi pornim afisarea din acel moment
-    - la final afisam si descrierea paginii curente a tabului curent
+### 9. `FORWARD`  
+- Navigates forward in history (symmetric to `BACKWARD`).  
 
-In final eliberam vectorul de pagini, descrierea paginilor, browserul si stivele.
+### 10. `PRINT`  
+- Prints the list of tabs starting from the current one.  
+- Displays the description of the current page.  
+
+## Memory Management  
+At program termination, all memory is released:  
+- Pages vector  
+- Page descriptions  
+- Browser tabs  
+- Navigation stacks 
